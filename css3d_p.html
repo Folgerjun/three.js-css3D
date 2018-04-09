@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>three.js css3d</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        html, body {
+            height: 100%;
+        }
+        body {
+            background-color: #000000;
+            margin: 0;
+            font-family: Helvetica, sans-serif;;
+            overflow: hidden;
+        }
+        a {
+            color: #ffffff;
+        }
+        #info {
+            position: absolute;
+            width: 100%;
+            color: #ffffff;
+            padding: 5px;
+            font-family: Monospace;
+            font-size: 13px;
+            font-weight: bold;
+            text-align: center;
+            z-index: 1;
+        }
+        #menu {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+        }
+        .element {
+            border: 1px solid rgba(127,255,255,0.25);
+            text-align: center;
+            cursor: default;
+        }
+        .element:hover {
+            box-shadow: 0px 0px 12px rgba(0,255,255,0.75);
+            border: 1px solid rgba(127,255,255,0.75);
+        }
+        .element .photo {
+            position: absolute;
+            z-index:-1;
+            bottom: 15px;
+            left: 0px;
+            right: 0px;
+            font-size: 12px;
+            color: rgba(127,255,255,0.75);
+        }
+        button {
+            color: rgba(127,255,255,0.75);
+            background: transparent;
+            outline: 1px solid rgba(127,255,255,0.75);
+            border: 0px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: rgba(0,255,255,0.5);
+        }
+        button:active {
+            color: #000000;
+            background-color: rgba(0,255,255,0.75);
+        }
+    </style>
+</head>
+<body>
+<script src="js/three.js"></script>
+<script src="js/tween.min.js"></script>
+<script src="js/TrackballControls.js"></script>
+<script src="js/CSS3DRenderer.js"></script>
+<script src="js/jquery-3.3.1.min.js"></script>
+
+<div id="container"></div>
+<div id="menu">
+    <button id="table">因</button>
+    <button id="sphere">缺</button>
+    <button id="helix">思</button>
+    <button id="grid">厅</button>
+</div>
+
+<script>
+    var camera, scene, renderer;
+    var controls;
+    var objects = [];
+    var targets = { table: [], sphere: [], helix: [], grid: [] };
+    // 开始调用
+    init();
+    animate();
+    function init() {
+        camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 10000 );
+        camera.position.z = 3000;
+        scene = new THREE.Scene();
+        // table
+        // 图片加载 根据自己图片进行修改循环次数以及路径
+        for ( var i = 0; i < 60; i ++ ) {
+            var element = document.createElement( 'div' );
+            element.className = 'element';
+            var photo = document.createElement('img');
+            photo.className = 'photo';
+            var photoURL = 'photo/' + i + '.jpg';
+            photo.src = photoURL;
+            element.appendChild(photo);
+            var object = new THREE.CSS3DObject( element );
+            object.position.x = Math.random() * 8000 - 5000;
+            object.position.y = Math.random() * 8000 - 2000;
+            object.position.z = Math.random() * 8000 - 2000;
+            scene.add( object );
+            objects.push( object );
+            //
+            var object = new THREE.Object3D();
+            object.position.x = 0;
+            object.position.y = 0;
+            targets.table.push( object );
+        }
+        // sphere
+        var vector = new THREE.Vector3();
+        var spherical = new THREE.Spherical();
+        for ( var i = 0, l = objects.length; i < l; i ++ ) {
+            var phi = Math.acos( -1 + ( 2 * i ) / l );
+            var theta = Math.sqrt( l * Math.PI ) * phi;
+            var object = new THREE.Object3D();
+            // 球面半径
+            spherical.set( 1100, phi, theta );
+            object.position.setFromSpherical( spherical );
+            vector.copy( object.position ).multiplyScalar( 2 );
+            object.lookAt( vector );
+            targets.sphere.push( object );
+        }
+        // helix
+        var vector = new THREE.Vector3();
+        var cylindrical = new THREE.Cylindrical();
+        for ( var i = 0, l = objects.length; i < l; i ++ ) {
+            var theta = i * 10.175 + Math.PI;
+            var y = - ( i * 11 ) + 150;
+            var object = new THREE.Object3D();
+            // 环形半径 角度 y轴距离
+            cylindrical.set( 1500, theta, y );
+            object.position.setFromCylindrical( cylindrical );
+            vector.x = object.position.x * 2;
+            vector.y = object.position.y;
+            vector.z = object.position.z * 2;
+            object.lookAt( vector );
+            targets.helix.push( object );
+        }
+        // grid
+        for ( var i = 0; i < objects.length; i ++ ) {
+            var object = new THREE.Object3D();
+            object.position.x = ( ( i % 5 ) * 600 ) - 1500;
+            object.position.y = ( - ( Math.floor( i / 5 ) % 5 ) * 500 ) + 500;
+            object.position.z = ( Math.floor( i / 25 ) ) * 1500 - 500;
+            targets.grid.push( object );
+        }
+        //
+        renderer = new THREE.CSS3DRenderer();
+        renderer.setSize( window.innerWidth, window.innerHeight );
+        document.getElementById( 'container' ).appendChild( renderer.domElement );
+        //
+        controls = new THREE.TrackballControls( camera, renderer.domElement );
+        controls.rotateSpeed = 0.5;
+        controls.minDistance = 500;
+        controls.maxDistance = 6000;
+        // 事件绑定
+        controls.addEventListener( 'change', render );
+        var button = document.getElementById( 'table' );
+        button.addEventListener( 'click', function ( event ) {
+            transform( targets.table, 2000 );
+        }, false );
+        var button = document.getElementById( 'sphere' );
+        button.addEventListener( 'click', function ( event ) {
+            transform( targets.sphere, 2000 );
+        }, false );
+        var button = document.getElementById( 'helix' );
+        button.addEventListener( 'click', function ( event ) {
+            transform( targets.helix, 2000 );
+        }, false );
+        var button = document.getElementById( 'grid' );
+        button.addEventListener( 'click', function ( event ) {
+            transform( targets.grid, 2000 );
+        }, false );
+
+        // 初始为table状态
+        transform( targets.table, 2000 );
+        //
+        window.addEventListener( 'resize', onWindowResize, false );
+    }
+
+    // 状态变化 调用了tween.js
+    function transform( targets, duration ) {
+        TWEEN.removeAll();
+        for ( var i = 0; i < objects.length; i ++ ) {
+            var object = objects[ i ];
+            var target = targets[ i ];
+            new TWEEN.Tween( object.position )
+                .to( { x: target.position.x, y: target.position.y, z: target.position.z }, Math.random() * duration + duration )
+                .easing( TWEEN.Easing.Exponential.InOut )
+                .start();
+            new TWEEN.Tween( object.rotation )
+                .to( { x: target.rotation.x, y: target.rotation.y, z: target.rotation.z }, Math.random() * duration + duration )
+                .easing( TWEEN.Easing.Exponential.InOut )
+                .start();
+        }
+        new TWEEN.Tween( this )
+            .to( {}, duration * 2 )
+            .onUpdate( render )
+            .start();
+    }
+
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize( window.innerWidth, window.innerHeight );
+        render();
+    }
+    function animate() {
+        requestAnimationFrame( animate );
+        TWEEN.update();
+        controls.update();
+    }
+    function render() {
+        renderer.render( scene, camera );
+    }
+
+    // 点击元素事件
+    var flag;
+    var eleHeight,eleWidth;
+    $('body').on('click','.photo',function(e) {
+        console.log(this.getAttribute('flag')); // this 就是button.element这个dom元素。
+        // 保证各自的element不冲突
+        flag = this.getAttribute('flag') == null? true:this.getAttribute('flag');
+        console.log(flag);
+        eleHeight = this.clientHeight;
+        eleWidth = this.clientWidth;
+        console.log(eleHeight + ' , ' + eleWidth);
+        if(flag == true || flag == 'true') {
+            // 放大
+            this.style.height = eleHeight * 2  + 'px';
+            this.style.width = eleWidth * 2  + 'px';
+            this.style.zIndex = '1';
+            flag = false;
+            console.log("放大----》" + this.clientHeight + ' , ' + this.clientWidth);
+        } else {
+            // 缩小
+            this.style.height = eleHeight / 2  + 'px';
+            this.style.width = eleWidth / 2  + 'px';
+            this.style.zIndex = '-1';
+            flag = true;
+            console.log("缩小----》" + this.clientHeight + ' , ' + this.clientWidth);
+        }
+        this.setAttribute('flag',flag);
+        e.stopPropagation(); // 阻止事件冒泡
+        e.preventDefault(); // 阻止默认行为 比如a标签的调整 提交按钮的提交等
+    });
+</script>
+</body>
+</html>
