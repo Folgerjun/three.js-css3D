@@ -14,4 +14,4 @@ A small example shows the effect of three.js css3D while using tween.js to make 
 <br />
 **Can be adjusted with the mouse wheel button Left arrow direction Right click**
 
-**自行可调整html中的参数来达到所需的要求**
+**自行可调整html中的参数来达到所需的要求 还增加了单个element点击事件 可自行修改**
